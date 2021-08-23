@@ -186,12 +186,12 @@ func CopyDir(src string, dst string) (err error) {
 		return fmt.Errorf("source is not a directory")
 	}
 
-	sd, err := os.Stat(dst)
+	_, err = os.Stat(dst)
 	if err != nil {
-		return err
-	}
-	if !sd.IsDir() {
-		return fmt.Errorf("destination is not a directory")
+		err = os.Mkdir(dst, 0750)
+		if err != nil {
+			return err
+		}
 	}
 
 	entries, err := ioutil.ReadDir(src)

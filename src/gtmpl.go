@@ -65,6 +65,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("Need to copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
+	err = CopyDir(configTmplPathData(tmpl), gitFolder)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
 	remoteOrigin := GetRemoteOrigin(gitFolder + string(os.PathSeparator) + ".git" + string(os.PathSeparator) + "config")
 
 	_, res, err := gitlabRequest.Request("user")
