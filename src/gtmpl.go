@@ -29,12 +29,25 @@ type project struct {
 	HttpUrlToRepo string `json:"http_url_to_repo"`
 }
 
+var version string = "development"
+
+func printVersion() {
+	fmt.Println(version)
+}
+
 func main() {
 	// Arguments
 	var tmpl string
+	var vOption bool
 	// Parameters treatment
+	flag.BoolVar(&vOption, "v", false, "Get version")
 	flag.StringVar(&tmpl, "t", "default", "Template Name")
 	flag.Parse()
+
+	if vOption {
+		printVersion()
+		os.Exit(0)
+	}
 
 	if len(tmpl) == 0 {
 		fmt.Println("Template name cannot be empty")

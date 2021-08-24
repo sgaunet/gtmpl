@@ -11,6 +11,8 @@ builds:
       - CGO_ENABLED=0
     dir: src
     id: gtmpl
+    ldflags:
+      - -X main.version={{.Version}}
     goos:
       - linux
       - windows
