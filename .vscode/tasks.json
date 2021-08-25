@@ -1,0 +1,16 @@
+
+
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "testMapiGW",
+      "type": "shell",
+      "command": "cd src;go build .;mv gtmpl $HOME/.bin/gtmpl;cd /home/sylvain/GITHUB/PUBLIC/MapiGW; $HOME/.bin/gtmpl -d debug",
+      "reveal": "always",
+      "focus": false,
+      "clear": false
+    }
+  ]
+}
+
