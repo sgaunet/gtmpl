@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/sgaunet/gtmpl/gitlabRequest"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -60,7 +61,7 @@ func ExistTemplate(tmpl string) bool {
 	if statDir.IsDir() {
 		// Check also if config.yaml exists
 		tmplConfig := configTmplPath(tmpl)
-		fmt.Println(tmplConfig)
+		log.Debugln(tmplConfig)
 		f, err := os.Open(tmplConfig)
 		if err != nil {
 			return false
@@ -77,13 +78,13 @@ func LoadConfigFile(filename string) (configTmpl, error) {
 
 	yamlFile, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("Error reading YAML file: %s\n", err)
+		log.Errorf("Error reading YAML file: %s\n", err)
 		return yamlConfig, err
 	}
 
 	err = yaml.Unmarshal(yamlFile, &yamlConfig)
 	if err != nil {
-		fmt.Printf("Error parsing YAML file: %s\n", err)
+		log.Errorf("Error parsing YAML file: %s\n", err)
 		return yamlConfig, err
 	}
 
@@ -114,7 +115,7 @@ func createVariable(projectID int, v projectVariableJSON) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(body))
+	log.Debugln(string(body))
 
 	return err
 }
@@ -143,7 +144,7 @@ func updateVariable(projectID int, v projectVariableJSON) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(body))
+	log.Debugln(string(body))
 
 	return err
 }
@@ -151,11 +152,11 @@ func updateVariable(projectID int, v projectVariableJSON) error {
 func getVariables(projectID int) ([]projectVariableJSON, error) {
 	_, res, err := gitlabRequest.Request(fmt.Sprintf("/projects/%d/variables", projectID))
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 
-	fmt.Println("----------------", string(res))
+	//fmt.Println("----------------", string(res))
 	var lstVars []projectVariableJSON
 	err = json.Unmarshal(res, &lstVars)
 
@@ -192,6 +193,7 @@ func CopyDir(src string, dst string) (err error) {
 		if err != nil {
 			return err
 		}
+		log.Infoln("Create directory:", dst)
 	}
 
 	entries, err := ioutil.ReadDir(src)
@@ -206,7 +208,7 @@ func CopyDir(src string, dst string) (err error) {
 		if entry.IsDir() {
 			err = CopyDir(srcPath, dstPath)
 			if err != nil {
-				return
+				return err
 			}
 		} else {
 			// Skip symlinks.
@@ -216,12 +218,13 @@ func CopyDir(src string, dst string) (err error) {
 
 			err = CopyFile(srcPath, dstPath)
 			if err != nil {
-				return
+				return err
 			}
+			log.Infoln("Copy file:", srcPath)
 		}
 	}
 
-	return
+	return err
 }
 
 // CopyFile copies the contents of the file named src to the file named

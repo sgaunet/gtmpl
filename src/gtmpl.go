@@ -7,12 +7,38 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/sgaunet/gtmpl/gitlabRequest"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 )
+
+func initTrace(debugLevel string) {
+	// Log as JSON instead of the default ASCII formatter.
+	//log.SetFormatter(&log.JSONFormatter{})
+	// log.SetFormatter(&log.TextFormatter{
+	// 	DisableColors: true,
+	// 	FullTimestamp: true,
+	// })
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	switch debugLevel {
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warn":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	default:
+		log.SetLevel(log.DebugLevel)
+	}
+}
 
 type whoami struct {
 	Id int `json:id`
@@ -37,11 +63,13 @@ func printVersion() {
 
 func main() {
 	// Arguments
-	var tmpl string
+	var tmpl, debugLevel, projectDir string
 	var vOption bool
 	// Parameters treatment
 	flag.BoolVar(&vOption, "v", false, "Get version")
 	flag.StringVar(&tmpl, "t", "default", "Template Name")
+	flag.StringVar(&projectDir, "p", "", "Project directory")
+	flag.StringVar(&debugLevel, "d", "info", "debuglevel : debug/info/warn/error")
 	flag.Parse()
 
 	if vOption {
@@ -49,18 +77,20 @@ func main() {
 		os.Exit(0)
 	}
 
+	initTrace(debugLevel)
+
 	if len(tmpl) == 0 {
-		fmt.Println("Template name cannot be empty")
+		log.Errorln("Template name cannot be empty")
 		os.Exit(1)
 	}
 
 	if !ExistTemplate(tmpl) {
-		fmt.Printf("Template named %s does not exist. Exit\n", tmpl)
+		log.Errorf("Template named %s does not exist. Exit\n", tmpl)
 		os.Exit(1)
 	}
 
 	if len(os.Getenv("GITLAB_TOKEN")) == 0 {
-		fmt.Println("Set GITLAB_TOKEN environment variable")
+		log.Errorf("Set GITLAB_TOKEN environment variable")
 		os.Exit(1)
 	}
 
@@ -70,88 +100,96 @@ func main() {
 
 	// log.Debugf("GITLAB_TOKEN=%s\n", os.Getenv("GITLAB_TOKEN"))
 	// log.Debugf("GITLAB_URI=%s\n", os.Getenv("GITLAB_URI"))
+	if projectDir != "" {
+		err := os.Chdir(projectDir)
+		if err != nil {
+			log.Errorf(err.Error())
+			os.Exit(1)
+		}
+	}
 
 	gitFolder, err := findGitRepository()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Folder .git not found")
+		log.Errorf("Folder .git not found")
 		os.Exit(1)
 	}
 
 	fmt.Printf("Need to copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
 	err = CopyDir(configTmplPathData(tmpl), gitFolder)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 
 	remoteOrigin := GetRemoteOrigin(gitFolder + string(os.PathSeparator) + ".git" + string(os.PathSeparator) + "config")
 
+	// Infos on gitlab user
 	_, res, err := gitlabRequest.Request("user")
 	if err != nil {
-		fmt.Println("...")
+		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 
-	fmt.Println(string(res))
+	log.Debugln(string(res))
+
 	var w whoami
 	err = json.Unmarshal(res, &w)
-	fmt.Println("ID", w.Id)
 	if err != nil {
-		fmt.Println("...")
+		log.Errorln(err.Error())
+		os.Exit(1)
+	}
+	log.Debugln("ID", w.Id)
+
+	cfg, err := LoadConfigFile(configTmplPath(tmpl))
+	if err != nil {
+		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 
-	id := strconv.Itoa(w.Id)
-	fmt.Println("users/" + id + "/projects")
+	// id := strconv.Itoa(w.Id)
+	// fmt.Println("users/" + id + "/projects")
 	// _, res, err = gitlabRequest.Request("users/" + id + "/projects?pagination=keyset&per_page=100&order_by=id&sort=asc")
 
 	project, err := findProject(remoteOrigin)
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
+		log.Warnln(err.Error())
+	} else {
+		log.Infoln("Project found: ", project.SshUrlToRepo)
+		// Get project vars
+		projectVars, err := getVariables(project.Id)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
 
-	fmt.Println("===>", project.SshUrlToRepo)
-	cfg, err := LoadConfigFile(configTmplPath(tmpl))
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
+		log.Debugln("projectVars=", projectVars)
 
-	fmt.Println("getVariables")
-	projectVars, err := getVariables(project.Id)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
+		for _, v := range cfg.Vars {
+			log.Debugln(v.Key)
+			var newV projectVariableJSON
+			newV.Environment_scope = v.Environment_scope
+			newV.Key = v.Key
+			newV.Masked = v.Masked
+			newV.Value = v.Value
+			newV.Variable_type = v.Variable_type
+			if !isKeyAlreadyCreated(newV, projectVars) {
 
-	fmt.Println("projectVars=", projectVars)
-
-	for _, v := range cfg.Vars {
-		fmt.Println(v.Key)
-		var newV projectVariableJSON
-		newV.Environment_scope = v.Environment_scope
-		newV.Key = v.Key
-		newV.Masked = v.Masked
-		newV.Value = v.Value
-		newV.Variable_type = v.Variable_type
-		if !isKeyAlreadyCreated(newV, projectVars) {
-
-			createVariable(project.Id, newV)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(1)
+				createVariable(project.Id, newV)
+				if err != nil {
+					fmt.Println(err.Error())
+					os.Exit(1)
+				}
+			} else {
+				updateVariable(project.Id, newV)
 			}
-		} else {
-			updateVariable(project.Id, newV)
 		}
 	}
 
-	fmt.Printf("Need to copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
+	log.Infof("Will copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
 	err = CopyDir(configTmplPathData(tmpl), gitFolder)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 }
@@ -159,26 +197,26 @@ func main() {
 func findProject(remoteOrigin string) (project, error) {
 	projectName := filepath.Base(remoteOrigin)
 	projectName = strings.ReplaceAll(projectName, ".git", "")
-	fmt.Println("Try to find ", projectName)
+	log.Infoln("Try to find ", projectName)
 
 	_, res, err := gitlabRequest.Request("search?scope=projects&search=" + projectName)
 	if err != nil {
-		fmt.Println("...")
+		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 
 	var p []project
 	err = json.Unmarshal(res, &p)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 
 	for _, project := range p {
-		fmt.Println(project.Name)
-		fmt.Println(project.Id)
-		fmt.Println(project.HttpUrlToRepo)
-		fmt.Println(project.SshUrlToRepo)
+		log.Debugln(project.Name)
+		log.Debugln(project.Id)
+		log.Debugln(project.HttpUrlToRepo)
+		log.Debugln(project.SshUrlToRepo)
 
 		if project.SshUrlToRepo == remoteOrigin {
 			return project, err
@@ -194,7 +232,7 @@ func findGitRepository() (string, error) {
 	}
 
 	for cwd != "/" {
-		fmt.Println(cwd)
+		log.Debugln(cwd)
 		stat, err := os.Stat(cwd + string(os.PathSeparator) + ".git")
 		if err == nil {
 			if stat.IsDir() {
@@ -209,11 +247,11 @@ func findGitRepository() (string, error) {
 func GetRemoteOrigin(gitConfigFile string) string {
 	cfg, err := ini.Load(gitConfigFile)
 	if err != nil {
-		fmt.Printf("Fail to read file: %v", err)
+		log.Errorf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
 
 	url := cfg.Section("remote \"origin\"").Key("url").String()
-	fmt.Println("url:", url)
+	log.Debugln("url:", url)
 	return url
 }
