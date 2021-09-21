@@ -115,7 +115,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Need to copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
+	log.Infof("Will copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
 	err = CopyDir(configTmplPathData(tmpl), gitFolder)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -185,19 +185,12 @@ func main() {
 			}
 		}
 	}
-
-	log.Infof("Will copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
-	err = CopyDir(configTmplPathData(tmpl), gitFolder)
-	if err != nil {
-		log.Errorln(err.Error())
-		os.Exit(1)
-	}
 }
 
 func findProject(remoteOrigin string) (project, error) {
 	projectName := filepath.Base(remoteOrigin)
 	projectName = strings.ReplaceAll(projectName, ".git", "")
-	log.Infoln("Try to find ", projectName)
+	log.Infof("Try to find project %s in %s\n", projectName, os.Getenv("GITLAB_URI"))
 
 	_, res, err := gitlabRequest.Request("search?scope=projects&search=" + projectName)
 	if err != nil {
