@@ -51,6 +51,27 @@ func configTmplPathData(tmpl string) string {
 	return fmt.Sprintf("%s%v.gtmpl%s%s%sdata", os.Getenv("HOME"), string(os.PathSeparator), string(os.PathSeparator), tmpl, string(os.PathSeparator))
 }
 
+func doesConfigFileExists(tmpl string) bool {
+	tmplDir := configTmplDir(tmpl)
+	statDir, err := os.Stat(tmplDir)
+	if err != nil {
+		return false
+	}
+	if statDir.IsDir() {
+		// Check also if config.yaml exists
+		tmplConfig := configTmplPath(tmpl)
+		log.Debugf("Template config file should be %s\n", tmplConfig)
+		f, err := os.Open(tmplConfig)
+		if err != nil {
+			return false
+		} else {
+			f.Close()
+			return true
+		}
+	}
+	return false
+}
+
 func ExistTemplate(tmpl string) bool {
 	tmplDir := configTmplDir(tmpl)
 	// fmt.Println(tmplDir)
@@ -59,16 +80,16 @@ func ExistTemplate(tmpl string) bool {
 		return false
 	}
 	if statDir.IsDir() {
-		// Check also if config.yaml exists
-		tmplConfig := configTmplPath(tmpl)
-		log.Debugln(tmplConfig)
-		f, err := os.Open(tmplConfig)
-		if err != nil {
-			return false
-		} else {
-			f.Close()
-			return true
-		}
+		// 	// Check also if config.yaml exists
+		// 	tmplConfig := configTmplPath(tmpl)
+		// 	log.Debugf("Template config file should be %s\n",tmplConfig)
+		// 	f, err := os.Open(tmplConfig)
+		// 	if err != nil {
+		// 		return false
+		// 	} else {
+		// 		f.Close()
+		return true
+		// 	}
 	}
 	return false
 }

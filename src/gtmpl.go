@@ -131,8 +131,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Debugln(string(res))
+	if !doesConfigFileExists(tmpl) {
+		log.Infoln("No config.yaml file in this template (no CI vars to init in gitlab project)")
+		os.Exit(0)
+	}
+	cfg, err := LoadConfigFile(configTmplPath(tmpl))
+	if err != nil {
+		log.Errorln(err.Error())
+		os.Exit(0)
+	}
 
+	// log.Debugln(string(res))
 	var w whoami
 	err = json.Unmarshal(res, &w)
 	if err != nil {
@@ -140,12 +149,6 @@ func main() {
 		os.Exit(1)
 	}
 	log.Debugln("ID", w.Id)
-
-	cfg, err := LoadConfigFile(configTmplPath(tmpl))
-	if err != nil {
-		log.Errorln(err.Error())
-		os.Exit(1)
-	}
 
 	if len(cfg.Vars) == 0 {
 		log.Infoln("No CI vars to init")
