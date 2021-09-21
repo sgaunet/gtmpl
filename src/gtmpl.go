@@ -44,9 +44,9 @@ type whoami struct {
 	Id int `json:id`
 }
 
-type projects struct {
-	Items []project
-}
+// type projects struct {
+// 	Items []project
+// }
 
 type project struct {
 	Id            int    `json:"id"`
@@ -90,15 +90,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(os.Getenv("GITLAB_TOKEN")) == 0 {
-		log.Errorf("Set GITLAB_TOKEN environment variable")
-		os.Exit(1)
-	}
-
-	if len(os.Getenv("GITLAB_URI")) == 0 {
-		os.Setenv("GITLAB_URI", "https://gitlab.com")
-	}
-
 	// log.Debugf("GITLAB_TOKEN=%s\n", os.Getenv("GITLAB_TOKEN"))
 	// log.Debugf("GITLAB_URI=%s\n", os.Getenv("GITLAB_URI"))
 	if projectDir != "" {
@@ -125,13 +116,6 @@ func main() {
 
 	remoteOrigin := GetRemoteOrigin(gitFolder + string(os.PathSeparator) + ".git" + string(os.PathSeparator) + "config")
 
-	// Infos on gitlab user
-	_, res, err := gitlabRequest.Request("user")
-	if err != nil {
-		log.Errorln(err.Error())
-		os.Exit(1)
-	}
-
 	if !doesConfigFileExists(tmpl) {
 		log.Infoln("No config.yaml file in this template (no CI vars to init in gitlab project)")
 		os.Exit(0)
@@ -140,6 +124,28 @@ func main() {
 	if err != nil {
 		log.Errorln(err.Error())
 		os.Exit(0)
+	}
+
+	if len(cfg.Vars) == 0 {
+		log.Infoln("No CI vars to init")
+		os.Exit(0)
+	}
+
+	/////////////////////////////////////////////////////////////////
+	// Part with GITLAB API to set CI vars
+	if len(os.Getenv("GITLAB_TOKEN")) == 0 {
+		log.Errorf("Set GITLAB_TOKEN environment variable")
+		os.Exit(1)
+	}
+
+	if len(os.Getenv("GITLAB_URI")) == 0 {
+		os.Setenv("GITLAB_URI", "https://gitlab.com")
+	}
+	// Infos on gitlab user
+	_, res, err := gitlabRequest.Request("user")
+	if err != nil {
+		log.Errorln(err.Error())
+		os.Exit(1)
 	}
 
 	// log.Debugln(string(res))
@@ -151,41 +157,36 @@ func main() {
 	}
 	log.Debugln("ID", w.Id)
 
-	if len(cfg.Vars) == 0 {
-		log.Infoln("No CI vars to init")
+	project, err := findProject(remoteOrigin)
+	if err != nil {
+		log.Warnln(err.Error())
 	} else {
-		project, err := findProject(remoteOrigin)
+		log.Infoln("Project found: ", project.SshUrlToRepo)
+		// Get project vars
+		projectVars, err := getVariables(project.Id)
 		if err != nil {
-			log.Warnln(err.Error())
-		} else {
-			log.Infoln("Project found: ", project.SshUrlToRepo)
-			// Get project vars
-			projectVars, err := getVariables(project.Id)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(1)
-			}
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
 
-			log.Debugln("projectVars=", projectVars)
+		log.Debugln("projectVars=", projectVars)
 
-			for _, v := range cfg.Vars {
-				log.Debugln(v.Key)
-				var newV projectVariableJSON
-				newV.Environment_scope = v.Environment_scope
-				newV.Key = v.Key
-				newV.Masked = v.Masked
-				newV.Value = v.Value
-				newV.Variable_type = v.Variable_type
-				if !isKeyAlreadyCreated(newV, projectVars) {
-
-					createVariable(project.Id, newV)
-					if err != nil {
-						fmt.Println(err.Error())
-						os.Exit(1)
-					}
-				} else {
-					updateVariable(project.Id, newV)
+		for _, v := range cfg.Vars {
+			log.Debugln(v.Key)
+			var newV projectVariableJSON
+			newV.Environment_scope = v.Environment_scope
+			newV.Key = v.Key
+			newV.Masked = v.Masked
+			newV.Value = v.Value
+			newV.Variable_type = v.Variable_type
+			if !isKeyAlreadyCreated(newV, projectVars) {
+				createVariable(project.Id, newV)
+				if err != nil {
+					fmt.Println(err.Error())
+					os.Exit(1)
 				}
+			} else {
+				updateVariable(project.Id, newV)
 			}
 		}
 	}
