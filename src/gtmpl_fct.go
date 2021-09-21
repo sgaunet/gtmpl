@@ -53,7 +53,7 @@ func configTmplPathData(tmpl string) string {
 
 func ExistTemplate(tmpl string) bool {
 	tmplDir := configTmplDir(tmpl)
-	fmt.Println(tmplDir)
+	// fmt.Println(tmplDir)
 	statDir, err := os.Stat(tmplDir)
 	if err != nil {
 		return false
