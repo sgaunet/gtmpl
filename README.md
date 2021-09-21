@@ -1,6 +1,12 @@
 # gtmpl
 
-gtmpl is a little tool to initialize gitlab projects just after creation. It allows to set environment variables for the CI and initialize also files.
+gtmpl is a little tool to initialize projects just after creation. It allows to initialize files and set environment variables for the CI (only for gitlab).
+
+* gtmpl will search the templates in $HOME/.gtmpl
+* $HOME/.gtmpl should have subfolders representing the name of the templates
+* Each template (subfolder) should contain
+    * data folder which contains every files and directories to copy
+    * config.yaml (optionnal) to set CI vars (only for gitlab projects)
 
 ```
 $ ll $HOME/.gtmpl
@@ -39,3 +45,9 @@ $ git clone .../my-new-project
 $ cd my-new-project
 $ gtmpl -t docker-scratch
 ```
+
+## Gitlab CI
+
+Only the version 4 of the API is supported. By default, it's using gitlab.com but you can set the environment variable GITLAB_URI to your custom gitlab.
+Of course, you need to specify the environment variable GITLAB_TOKEN.
+
