@@ -64,9 +64,10 @@ func printVersion() {
 func main() {
 	// Arguments
 	var tmpl, debugLevel, projectDir string
-	var vOption bool
+	var vOption, overwriteOption bool
 	// Parameters treatment
 	flag.BoolVar(&vOption, "v", false, "Get version")
+	flag.BoolVar(&overwriteOption, "f", false, "Overwrite files")
 	flag.StringVar(&tmpl, "t", "default", "Template Name")
 	flag.StringVar(&projectDir, "p", "", "Project directory")
 	flag.StringVar(&debugLevel, "d", "info", "debuglevel : debug/info/warn/error")
@@ -116,7 +117,7 @@ func main() {
 	}
 
 	log.Infof("Will copy %s to %s\n", configTmplPathData(tmpl), gitFolder)
-	err = CopyDir(configTmplPathData(tmpl), gitFolder)
+	err = CopyDir(configTmplPathData(tmpl), gitFolder, overwriteOption)
 	if err != nil {
 		log.Errorln(err.Error())
 		os.Exit(1)

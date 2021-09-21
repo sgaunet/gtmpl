@@ -196,7 +196,7 @@ func isKeyAlreadyCreated(v projectVariableJSON, projectVars []projectVariableJSO
 // CopyDir recursively copies a directory tree, attempting to preserve permissions.
 // Source directory must exist, destination directory must exist.
 // Symlinks are ignored and skipped.
-func CopyDir(src string, dst string) (err error) {
+func CopyDir(src string, dst string, overwrite bool) (err error) {
 	src = filepath.Clean(src)
 	dst = filepath.Clean(dst)
 
@@ -227,7 +227,7 @@ func CopyDir(src string, dst string) (err error) {
 		dstPath := filepath.Join(dst, entry.Name())
 
 		if entry.IsDir() {
-			err = CopyDir(srcPath, dstPath)
+			err = CopyDir(srcPath, dstPath, overwrite)
 			if err != nil {
 				return err
 			}
@@ -237,11 +237,10 @@ func CopyDir(src string, dst string) (err error) {
 				continue
 			}
 
-			err = CopyFile(srcPath, dstPath)
+			err = CopyFile(srcPath, dstPath, overwrite)
 			if err != nil {
 				return err
 			}
-			log.Infoln("Copy file:", srcPath)
 		}
 	}
 
@@ -253,12 +252,21 @@ func CopyDir(src string, dst string) (err error) {
 // destination file exists, all it's contents will be replaced by the contents
 // of the source file. The file mode will be copied from the source and
 // the copied data is synced/flushed to stable storage.
-func CopyFile(src, dst string) (err error) {
+func CopyFile(src, dst string, overwrite bool) (err error) {
 	in, err := os.Open(src)
 	if err != nil {
 		return
 	}
 	defer in.Close()
+
+	_, err = os.Stat(dst)
+	if err == nil {
+		// File exists
+		if !overwrite {
+			log.Infof("File %s exists, won't overwrite it.\n", dst)
+			return
+		}
+	}
 
 	out, err := os.Create(dst)
 	if err != nil {
@@ -270,6 +278,8 @@ func CopyFile(src, dst string) (err error) {
 		}
 	}()
 
+	log.Infoln("Copy file %s", src)
+	log.Infoln("       to %s", dst)
 	_, err = io.Copy(out, in)
 	if err != nil {
 		return
