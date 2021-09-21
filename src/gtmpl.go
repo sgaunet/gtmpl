@@ -147,41 +147,41 @@ func main() {
 		os.Exit(1)
 	}
 
-	// id := strconv.Itoa(w.Id)
-	// fmt.Println("users/" + id + "/projects")
-	// _, res, err = gitlabRequest.Request("users/" + id + "/projects?pagination=keyset&per_page=100&order_by=id&sort=asc")
-
-	project, err := findProject(remoteOrigin)
-	if err != nil {
-		log.Warnln(err.Error())
+	if len(cfg.Vars) == 0 {
+		log.Infoln("No CI vars to init")
 	} else {
-		log.Infoln("Project found: ", project.SshUrlToRepo)
-		// Get project vars
-		projectVars, err := getVariables(project.Id)
+		project, err := findProject(remoteOrigin)
 		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
+			log.Warnln(err.Error())
+		} else {
+			log.Infoln("Project found: ", project.SshUrlToRepo)
+			// Get project vars
+			projectVars, err := getVariables(project.Id)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
 
-		log.Debugln("projectVars=", projectVars)
+			log.Debugln("projectVars=", projectVars)
 
-		for _, v := range cfg.Vars {
-			log.Debugln(v.Key)
-			var newV projectVariableJSON
-			newV.Environment_scope = v.Environment_scope
-			newV.Key = v.Key
-			newV.Masked = v.Masked
-			newV.Value = v.Value
-			newV.Variable_type = v.Variable_type
-			if !isKeyAlreadyCreated(newV, projectVars) {
+			for _, v := range cfg.Vars {
+				log.Debugln(v.Key)
+				var newV projectVariableJSON
+				newV.Environment_scope = v.Environment_scope
+				newV.Key = v.Key
+				newV.Masked = v.Masked
+				newV.Value = v.Value
+				newV.Variable_type = v.Variable_type
+				if !isKeyAlreadyCreated(newV, projectVars) {
 
-				createVariable(project.Id, newV)
-				if err != nil {
-					fmt.Println(err.Error())
-					os.Exit(1)
+					createVariable(project.Id, newV)
+					if err != nil {
+						fmt.Println(err.Error())
+						os.Exit(1)
+					}
+				} else {
+					updateVariable(project.Id, newV)
 				}
-			} else {
-				updateVariable(project.Id, newV)
 			}
 		}
 	}
