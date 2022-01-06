@@ -4,11 +4,8 @@ go 1.17
 
 require (
 	github.com/sirupsen/logrus v1.8.1
-	gopkg.in/ini.v1 v1.62.0
+	gopkg.in/ini.v1 v1.66.2
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require (
-	github.com/smartystreets/goconvey v1.6.4 // indirect
-	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
-)
+require golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
