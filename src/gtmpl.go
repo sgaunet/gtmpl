@@ -41,7 +41,7 @@ func initTrace(debugLevel string) {
 }
 
 type whoami struct {
-	Id int `json:id`
+	Id int `json:"id"`
 }
 
 // type projects struct {
@@ -131,7 +131,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	/////////////////////////////////////////////////////////////////
 	// Part with GITLAB API to set CI vars
 	if len(os.Getenv("GITLAB_TOKEN")) == 0 {
 		log.Errorf("Set GITLAB_TOKEN environment variable")
@@ -220,7 +219,7 @@ func findProject(remoteOrigin string) (project, error) {
 			return project, err
 		}
 	}
-	return project{}, errors.New("Project not found")
+	return project{}, errors.New("project not found")
 }
 
 func findGitRepository() (string, error) {
