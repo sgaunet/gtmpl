@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -68,7 +69,7 @@ func main() {
 	// Parameters treatment
 	flag.BoolVar(&vOption, "v", false, "Get version")
 	flag.BoolVar(&overwriteOption, "f", false, "Overwrite files")
-	flag.StringVar(&tmpl, "t", "default", "Template Name")
+	flag.StringVar(&tmpl, "t", "", "Template Name")
 	flag.StringVar(&projectDir, "p", "", "Project directory")
 	flag.StringVar(&debugLevel, "d", "info", "debuglevel : debug/info/warn/error")
 	flag.Parse()
@@ -81,8 +82,13 @@ func main() {
 	initTrace(debugLevel)
 
 	if len(tmpl) == 0 {
-		log.Errorln("Template name cannot be empty")
-		os.Exit(1)
+		log.Infoln("No template specified, will list templates")
+		err := listTemplates()
+		if err != nil {
+			log.Errorln(err.Error())
+			os.Exit(1)
+		}
+		os.Exit(0)
 	}
 
 	if !ExistTemplate(tmpl) {
@@ -251,4 +257,18 @@ func GetRemoteOrigin(gitConfigFile string) string {
 	url := cfg.Section("remote \"origin\"").Key("url").String()
 	log.Debugln("url:", url)
 	return url
+}
+
+func listTemplates() error {
+	entries, err := ioutil.ReadDir(os.Getenv("HOME") + string(os.PathSeparator) + ".gtmpl")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() && entry.Name() != ".git" {
+			log.Infoln("Template :", entry.Name())
+		}
+	}
+	return err
 }
