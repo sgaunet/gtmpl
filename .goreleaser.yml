@@ -15,7 +15,7 @@ builds:
       - -X main.version={{.Version}}
     goos:
       - linux
-      - windows
+      # - windows
       - darwin
     goarch:
       - 386
