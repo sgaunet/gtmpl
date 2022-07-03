@@ -10,11 +10,11 @@ tasks:
       - CGO_ENABLED=0 go build .
       - upx ./{{.BINFILE}}
     # silent: true
-    dir: src
+    # dir: src
     sources:
       - main.go
       - go*
-      - gitlab*/*go
+      - "*go"
     method: checksum
     generates:
       - "{{.BINFILE}}"
