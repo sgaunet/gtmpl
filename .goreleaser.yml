@@ -16,12 +16,28 @@ builds:
     goos:
       - linux
       # - windows
-      - darwin
+      # - darwin
     goarch:
       - "386"
       - amd64
       - arm
       - arm64
+    hooks:
+      post:
+        - upx "{{ .Path }}"
+  - env:
+      - CGO_ENABLED=0
+    # dir: src
+    id: gtmpldarwin
+    ldflags:
+      - -X main.version={{.Version}}
+    goos:
+      - darwin
+    goarch:
+      - "386"
+      # - amd64
+      - arm
+      # - arm64
     hooks:
       post:
         - upx "{{ .Path }}"
