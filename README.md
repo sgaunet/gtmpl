@@ -38,3 +38,9 @@ $ gtmpl -t docker-scratch
 # Major change
 
 Since version 1.0.0, gtmpl is not initializing any gitlab CI variables. It's working only with files.
+
+# Fix cross compilation darwin
+
+```
+go get -u golang.org/x/sys
+```
