@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -85,39 +83,13 @@ func main() {
 		}
 	}
 
-	// gitFolder, err := findGitRepository()
-
-	// if err != nil {
-	// 	log.Errorf("Folder .git not found")
-	// 	os.Exit(1)
-	// }
-
-	log.Infof("Will copy %s to %s\n", configTmplDir(tmpl), ".")
+	log.Infof("copy %s to %s\n", configTmplDir(tmpl), ".")
 	err = CopyDir(configTmplDir(tmpl), ".", overwriteOption)
 	if err != nil {
 		log.Errorln(err.Error())
 		os.Exit(1)
 	}
 
-}
-
-func findGitRepository() (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	for cwd != "/" {
-		log.Debugln(cwd)
-		stat, err := os.Stat(cwd + string(os.PathSeparator) + ".git")
-		if err == nil {
-			if stat.IsDir() {
-				return cwd, err
-			}
-		}
-		cwd = filepath.Dir(cwd)
-	}
-	return "", errors.New(".git not found")
 }
 
 func listTemplates() error {
