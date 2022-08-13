@@ -44,3 +44,14 @@ Since version 1.0.0, gtmpl is not initializing any gitlab CI variables. It's wor
 ```
 go get -u golang.org/x/sys
 ```
+
+# Install
+
+Download the binary in the release section. There is no docker image, but you can install a binary in your Docker image if needed. If you want to create a docker image from scratch, you will need to do a multi stage docker build in order to download the binary.
+
+## With homebrew
+
+```
+brew tap sgaunet/tools
+brew install mdtohtml
+```
